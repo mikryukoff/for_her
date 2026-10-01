@@ -1,0 +1,1031 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <link rel="icon" href="data:," />
+  <title>Для неё</title>
+  <style>
+    :root {
+      --text: #e8eef6;
+      --text-soft: rgba(220, 230, 245, 0.45);
+      --lamp: #ffbb55;
+      --lamp-deep: #ffaa33;
+      --lamp-pulse: 2800ms;
+      --text-fade: 520ms;
+      --moon-size: 190px;
+      --star-boost: 1;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      height: 100dvh;
+      overflow: hidden;
+      background: #05070f;
+      font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+      color: var(--text);
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    .scene {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background:
+        radial-gradient(ellipse 90% 50% at 78% 2%, rgba(90, 110, 160, 0.2) 0%, transparent 55%),
+        radial-gradient(ellipse 70% 40% at 22% 15%, rgba(40, 50, 90, 0.18) 0%, transparent 50%),
+        radial-gradient(ellipse 45% 35% at 48% 78%, rgba(255, 170, 60, 0.07) 0%, transparent 55%),
+        linear-gradient(180deg, #0a0f1e 0%, #070b16 40%, #05070f 70%, #04060c 100%);
+    }
+
+    .scene::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: 48;
+      pointer-events: none;
+      background: radial-gradient(ellipse 78% 72% at 50% 42%, transparent 42%, rgba(0,0,0,.48) 100%);
+    }
+
+    /* Reveal: soft edge glow (cold sides + warm hint at bottom) */
+    .edge-glow {
+      position: absolute;
+      inset: 0;
+      z-index: 46;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 1.2s ease;
+      background:
+        radial-gradient(ellipse 100% 80% at 50% 50%, transparent 55%, rgba(80, 110, 170, 0.18) 100%),
+        radial-gradient(ellipse 60% 40% at 50% 95%, rgba(255, 170, 60, 0.12) 0%, transparent 70%);
+    }
+    .scene.revealed .edge-glow { opacity: 1; }
+
+    .grain {
+      position: absolute;
+      inset: 0;
+      z-index: 47;
+      pointer-events: none;
+      opacity: 0.08;
+      mix-blend-mode: overlay;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    }
+
+    .fog {
+      position: absolute;
+      left: -10%;
+      width: 120%;
+      height: 24%;
+      bottom: 12%;
+      z-index: 16;
+      pointer-events: none;
+      background: linear-gradient(180deg, transparent, rgba(40, 55, 90, 0.28) 45%, transparent);
+      filter: blur(24px);
+      animation: fogDrift 28s ease-in-out infinite alternate;
+    }
+    .fog.low {
+      bottom: 0;
+      height: 14%;
+      opacity: 0.5;
+      animation-duration: 36s;
+      animation-direction: alternate-reverse;
+    }
+    @keyframes fogDrift {
+      from { transform: translateX(-2%); }
+      to { transform: translateX(2%); }
+    }
+
+    #world, #fireflies {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+    #world { z-index: 5; }
+    #fireflies { z-index: 24; }
+
+    /* Moon — cold silver */
+    .moon {
+      position: absolute;
+      top: clamp(2%, 3vh, 6%);
+      right: clamp(3%, 6vw, 10%);
+      width: var(--moon-size);
+      height: var(--moon-size);
+      border: 0;
+      padding: 0;
+      background: transparent;
+      border-radius: 50%;
+      cursor: pointer;
+      z-index: 20;
+      outline: none;
+      animation: moonBreathe 7s ease-in-out infinite;
+      filter:
+        drop-shadow(0 0 18px rgba(200, 215, 240, 0.45))
+        drop-shadow(0 0 55px rgba(140, 160, 200, 0.28))
+        drop-shadow(0 0 110px rgba(100, 130, 180, 0.12));
+      transition: transform 0.35s cubic-bezier(0.34, 1.45, 0.64, 1);
+    }
+    .moon svg { display: block; width: 100%; height: 100%; overflow: visible; }
+    .moon:focus-visible { box-shadow: 0 0 0 2px rgba(220, 230, 245, 0.5); }
+    .moon.pulse { animation: moonPulse 340ms cubic-bezier(0.34, 1.45, 0.64, 1); }
+    @keyframes moonBreathe {
+      0%, 100% { filter: drop-shadow(0 0 16px rgba(200,215,240,.4)) drop-shadow(0 0 50px rgba(140,160,200,.25)) drop-shadow(0 0 100px rgba(100,130,180,.1)); }
+      50% { filter: drop-shadow(0 0 26px rgba(220,230,250,.55)) drop-shadow(0 0 70px rgba(160,180,220,.35)) drop-shadow(0 0 130px rgba(120,150,200,.16)); }
+    }
+    @keyframes moonPulse {
+      0% { transform: scale(1); }
+      45% { transform: scale(1.07); }
+      100% { transform: scale(1); }
+    }
+
+    .message {
+      position: absolute;
+      z-index: 30;
+      max-width: min(84vw, 320px);
+      color: var(--text);
+      font-size: clamp(1.05rem, 3.4vw, 1.35rem);
+      font-style: italic;
+      line-height: 1.5;
+      letter-spacing: 0.015em;
+      text-align: center;
+      text-shadow: 0 0 28px rgba(160, 185, 230, 0.4), 0 2px 22px rgba(0, 0, 0, 0.85);
+      opacity: 0;
+      transform: translateY(12px);
+      pointer-events: none;
+      transition: opacity var(--text-fade) cubic-bezier(0.22, 1, 0.36, 1), transform var(--text-fade) cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .message.visible { opacity: 1; transform: translateY(0); }
+
+    /* Central lamp — home / guide (stands at path end) */
+    .lamp {
+      position: absolute;
+      left: 50%;
+      bottom: 30%;
+      width: clamp(38px, 6.5vw, 56px);
+      height: clamp(150px, 34vh, 250px);
+      transform: translateX(-50%);
+      z-index: 22;
+      pointer-events: none;
+      transition: filter 1s ease;
+    }
+    .scene.revealed .lamp,
+    .scene.ignited .lamp {
+      filter: none;
+    }
+    .lamp.lit {
+      filter: brightness(1.08) saturate(1.05);
+    }
+    /* Soft glow under glass only (clipped — never above the lamp head) */
+    .lamp-light {
+      position: absolute;
+      left: 50%;
+      top: 14%;
+      width: 720%;
+      height: 110%;
+      transform: translateX(-50%);
+      overflow: hidden;
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0;
+      transition: opacity 0.9s ease;
+    }
+    .lamp.lit .lamp-light { opacity: 1; }
+    .lamp-bloom {
+      position: absolute;
+      left: 50%;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      transform: translateX(-50%);
+      background: radial-gradient(ellipse 48% 55% at 50% 0%,
+        rgba(255, 200, 100, 0.38) 0%,
+        rgba(255, 170, 60, 0.14) 28%,
+        rgba(255, 150, 50, 0.04) 55%,
+        transparent 75%);
+      filter: blur(7px);
+      animation: breath var(--lamp-pulse) ease-in-out infinite;
+      transition: opacity 0.8s ease;
+    }
+    .scene.ignited .lamp.lit .lamp-bloom { filter: blur(10px) brightness(1.15); }
+    .lamp-pool {
+      position: absolute;
+      left: 50%; bottom: -4%;
+      width: 560%; height: 28%;
+      transform: translateX(-50%);
+      background: radial-gradient(ellipse, rgba(255, 190, 100, 0.4) 0%, rgba(255, 160, 60, 0.12) 42%, transparent 70%);
+      filter: blur(7px);
+      opacity: 0;
+      transition: opacity 0.9s ease;
+      animation: breath var(--lamp-pulse) ease-in-out infinite;
+    }
+    .lamp.lit .lamp-pool { opacity: 1; }
+    .lamp-pole {
+      position: absolute;
+      left: 50%; bottom: 0;
+      width: 9%; height: 76%;
+      transform: translateX(-50%);
+      background: linear-gradient(90deg, #0a0c12, #2e2e3a 42%, #12141a 56%, #262830);
+      z-index: 1;
+    }
+    .lamp-pole::after {
+      content: "";
+      position: absolute;
+      left: 50%; bottom: 0;
+      width: 280%; height: 3%;
+      transform: translateX(-50%);
+      background: #14161c;
+      border-radius: 2px;
+    }
+    .lamp-ring {
+      position: absolute;
+      left: 50%; top: 18%;
+      width: 42%; height: 2.5%;
+      transform: translateX(-50%);
+      background: linear-gradient(90deg, #222430, #4a4a58, #222430);
+      border-radius: 2px;
+    }
+    .lamp-arm {
+      position: absolute;
+      left: 48%; top: 12%;
+      width: 68%; height: 1.8%;
+      background: linear-gradient(90deg, #2a2a36, #4a4a56);
+      border-radius: 2px;
+    }
+    .lamp-head { position: absolute; left: 50%; top: 0; width: 100%; height: 20%; transform: translateX(-50%); z-index: 2; }
+    .lamp-cap {
+      position: absolute;
+      left: 50%; top: 0;
+      width: 112%; height: 34%;
+      transform: translateX(-50%);
+      background: linear-gradient(180deg, #363644, #121218);
+      clip-path: polygon(4% 100%, 50% 0, 96% 100%);
+    }
+    .lamp-cap::after {
+      content: "";
+      position: absolute;
+      left: 50%; top: -26%;
+      width: 11%; height: 36%;
+      transform: translateX(-50%);
+      background: #404050;
+      border-radius: 40% 40% 20% 20%;
+    }
+    .lamp-glass {
+      position: absolute;
+      left: 50%; top: 30%;
+      width: 60%; height: 55%;
+      transform: translateX(-50%);
+      border-radius: 12% 12% 28% 28%;
+      background: linear-gradient(165deg, #2a2e3a 0%, #14161e 55%, #0a0c12 100%);
+      box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.65);
+      overflow: hidden;
+    }
+    .lamp-glass::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      background: radial-gradient(ellipse at 40% 28%,
+        #fff3c8 0%,
+        var(--lamp) 32%,
+        var(--lamp-deep) 72%,
+        rgba(255, 150, 40, 0.55) 100%);
+      box-shadow:
+        0 3px 12px 3px rgba(255, 200, 100, 0.9),
+        0 12px 28px 10px rgba(255, 170, 60, 0.4),
+        0 28px 56px 20px rgba(255, 150, 50, 0.14),
+        inset 0 0 12px rgba(255, 255, 230, 0.5);
+      opacity: 0;
+      transition: opacity 0.85s ease;
+      animation: none;
+    }
+    .lamp.lit .lamp-glass::before {
+      opacity: 1;
+      animation: lampPulse var(--lamp-pulse) ease-in-out infinite;
+    }
+    .lamp.lit.spark .lamp-glass::before {
+      transition-duration: 0.35s;
+    }
+    .scene.ignited .lamp.lit .lamp-glass::before,
+    .lamp.lit.brighter .lamp-glass::before {
+      filter: brightness(1.28);
+      box-shadow:
+        0 3px 16px 5px rgba(255, 210, 120, 0.98),
+        0 14px 38px 16px rgba(255, 180, 70, 0.58),
+        0 34px 78px 28px rgba(255, 160, 50, 0.28),
+        inset 0 0 14px rgba(255, 255, 240, 0.65);
+    }
+    .lamp.lit.brighter .lamp-light {
+      filter: brightness(1.2);
+    }
+    .lamp-bars {
+      position: absolute;
+      left: 50%; top: 30%;
+      width: 60%; height: 55%;
+      transform: translateX(-50%);
+      border-radius: 12% 12% 28% 28%;
+      background:
+        linear-gradient(90deg, transparent 46%, rgba(20,18,14,.55) 50%, transparent 54%),
+        linear-gradient(180deg, transparent 45%, rgba(20,18,14,.4) 50%, transparent 55%);
+      pointer-events: none;
+      z-index: 3;
+    }
+    @keyframes lampPulse {
+      0%, 100% { filter: brightness(0.94); }
+      50% { filter: brightness(1.08); }
+    }
+    @keyframes breath {
+      0%, 100% { opacity: 0.72; }
+      50% { opacity: 1; }
+    }
+
+    .hint {
+      position: absolute;
+      left: 50%;
+      bottom: clamp(0.9rem, 2.4vh, 1.6rem);
+      transform: translateX(-50%);
+      z-index: 40;
+      font-family: "Georgia", "Times New Roman", serif;
+      font-size: clamp(0.68rem, 1.9vw, 0.78rem);
+      font-style: italic;
+      letter-spacing: 0.18em;
+      color: rgba(180, 195, 220, 0.55);
+      opacity: 0.4;
+      pointer-events: none;
+      transition: opacity 0.9s ease, color 0.9s ease;
+      animation: hintRise 1.8s ease 1s both;
+    }
+    .scene:has(.lamp.lit) .hint {
+      opacity: 0.14;
+      color: rgba(180, 195, 220, 0.32);
+    }
+    @keyframes hintRise {
+      from { opacity: 0; transform: translateX(-50%) translateY(6px); }
+      to { opacity: 0.4; transform: translateX(-50%) translateY(0); }
+    }
+
+    @media (max-width: 480px) {
+      .moon { top: 2.5%; right: 3%; }
+      .lamp { left: 50%; bottom: 26%; }
+      .message { max-width: min(90vw, 290px); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .fog, .moon, .moon.pulse, .lamp-glass, .lamp-glass::before, .lamp-bloom, .lamp-pool, .hint, .edge-glow {
+        animation: none !important;
+        transition: none !important;
+      }
+      .hint { opacity: 0.4; }
+      .message { transition-duration: 0.01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="scene" id="scene">
+    <canvas id="world" aria-hidden="true"></canvas>
+    <div class="fog" aria-hidden="true"></div>
+    <div class="fog low" aria-hidden="true"></div>
+    <div class="edge-glow" aria-hidden="true"></div>
+    <div class="grain" aria-hidden="true"></div>
+
+    <button type="button" class="moon" id="moon" aria-label="Луна — нажми, чтобы увидеть послание">
+      <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <defs>
+          <radialGradient id="mb" cx="32%" cy="28%" r="72%">
+            <stop offset="0%" stop-color="#f4f7fc"/>
+            <stop offset="25%" stop-color="#dce4f0"/>
+            <stop offset="55%" stop-color="#b0bcd0"/>
+            <stop offset="80%" stop-color="#8898b8"/>
+            <stop offset="100%" stop-color="#6a7a98"/>
+          </radialGradient>
+          <radialGradient id="ms" cx="78%" cy="74%" r="55%">
+            <stop offset="0%" stop-color="#4a5870" stop-opacity=".48"/>
+            <stop offset="100%" stop-color="#4a5870" stop-opacity="0"/>
+          </radialGradient>
+          <filter id="mn" x="-10%" y="-10%" width="120%" height="120%">
+            <feTurbulence type="fractalNoise" baseFrequency="2" numOctaves="3" result="n"/>
+            <feColorMatrix type="matrix" values="0 0 0 0 .45  0 0 0 0 .5  0 0 0 0 .58  0 0 0 .2 0" in="n" result="t"/>
+            <feComposite in="t" in2="SourceGraphic" operator="in"/>
+          </filter>
+          <clipPath id="mc"><circle cx="100" cy="100" r="96"/></clipPath>
+        </defs>
+        <circle cx="100" cy="100" r="99" fill="rgba(180,200,230,.1)"/>
+        <g clip-path="url(#mc)">
+          <circle cx="100" cy="100" r="96" fill="url(#mb)"/>
+          <circle cx="100" cy="100" r="96" fill="url(#ms)"/>
+          <circle cx="100" cy="100" r="96" filter="url(#mn)" opacity=".55"/>
+          <ellipse cx="70" cy="76" rx="30" ry="24" fill="#6a7a92" opacity=".45"/>
+          <ellipse cx="118" cy="108" rx="36" ry="28" fill="#5e6e88" opacity=".42"/>
+          <ellipse cx="92" cy="134" rx="22" ry="15" fill="#667890" opacity=".38"/>
+          <ellipse cx="50" cy="116" rx="15" ry="12" fill="#708098" opacity=".32"/>
+          <circle cx="56" cy="60" r="12" fill="#4e5e78" opacity=".45"/>
+          <circle cx="56" cy="60" r="12" fill="none" stroke="#e8eef8" stroke-width="1.8" opacity=".55"/>
+          <circle cx="51" cy="54" r="2.5" fill="#fff" opacity=".4"/>
+          <circle cx="142" cy="118" r="14" fill="#4a5a72" opacity=".42"/>
+          <circle cx="142" cy="118" r="14" fill="none" stroke="#e4eaf4" stroke-width="1.8" opacity=".5"/>
+          <circle cx="136" cy="111" r="2.8" fill="#fff" opacity=".35"/>
+          <circle cx="128" cy="52" r="8" fill="#546480" opacity=".4"/>
+          <circle cx="128" cy="52" r="8" fill="none" stroke="#e0e6f0" stroke-width="1.3" opacity=".48"/>
+          <circle cx="78" cy="144" r="9" fill="#4e5e78" opacity=".38"/>
+          <circle cx="78" cy="144" r="9" fill="none" stroke="#e0e6f0" stroke-width="1.2" opacity=".42"/>
+          <circle cx="42" cy="95" r="3" fill="#4a5a70" opacity=".35"/>
+          <circle cx="95" cy="46" r="2.4" fill="#4a5a70" opacity=".32"/>
+          <circle cx="165" cy="88" r="2.6" fill="#4a5a70" opacity=".32"/>
+          <circle cx="158" cy="148" r="2.5" fill="#4a5a70" opacity=".3"/>
+          <ellipse cx="62" cy="52" rx="26" ry="16" fill="rgba(255,255,255,.32)"/>
+          <ellipse cx="52" cy="46" rx="10" ry="6" fill="rgba(255,255,255,.45)"/>
+        </g>
+        <circle cx="100" cy="100" r="95.5" fill="none" stroke="rgba(220,230,245,.22)" stroke-width="1.2"/>
+      </svg>
+    </button>
+
+    <div class="message" id="message" role="status" aria-live="polite"></div>
+
+    <div class="lamp" aria-hidden="true">
+      <div class="lamp-light"><div class="lamp-bloom"></div></div>
+      <div class="lamp-pool"></div>
+      <div class="lamp-pole"></div>
+      <div class="lamp-ring"></div>
+      <div class="lamp-arm"></div>
+      <div class="lamp-head">
+        <div class="lamp-cap"></div>
+        <div class="lamp-glass"></div>
+        <div class="lamp-bars"></div>
+      </div>
+    </div>
+
+    <canvas id="fireflies" aria-hidden="true"></canvas>
+    <p class="hint">Зажги свет</p>
+  </div>
+
+  <script>
+    // ============ НАСТРОЙКИ ============
+
+    const messages = [
+      "Свет всегда возвращается. И он не снаружи — он в тебе.",
+      "Ты не одна — у тебя есть люди, которым ты важна. И я один из них.",
+      "Я не обещаю, что не будет больно. Я обещаю, что не оставлю тебя одну.",
+      "Ты сказала, что ты сложная. Я сказал, что я тоже. Мы оба соврали. Мы просто живые.",
+      "Я не знаю, что будет завтра. Но сегодня я люблю тебя.",
+    ];
+
+    const FIREFLY_COUNT = 30;
+    const FIREFLY_SPEED = 0.28;
+    const FIREFLY_GLOW = 8;
+
+    const MOON_SIZE = 190;
+    const MOON_COLOR = "#dce4f0";
+    const MOON_GLOW = "#8898b8";
+
+    const TEXT_DURATION = 4500;
+    const TEXT_FADE = 520;
+
+    const LAMP_COLOR = "#ffbb55";
+    const LAMP_PULSE = 2800;
+
+    const IGNITE_MS = 1000;   // светлячки собираются к фонарю
+    const LAMP_ON_AT = 700;   // фонарь загорается после роя
+    const LAMP_LIT_MS = 3200; // сколько горит, затем гаснет
+    const REVEAL_MS = 4500;
+
+    // ===================================
+
+    const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const scene = document.getElementById("scene");
+    const moon = document.getElementById("moon");
+    const messageEl = document.getElementById("message");
+    const world = document.getElementById("world");
+    const wctx = world.getContext("2d");
+    const canvas = document.getElementById("fireflies");
+    const ctx = canvas.getContext("2d");
+
+    moon.style.setProperty("--moon-size",
+      `clamp(${Math.round(MOON_SIZE * 0.5)}px, ${MOON_SIZE * 0.12}vw + ${MOON_SIZE * 0.4}px, ${MOON_SIZE}px)`);
+    document.documentElement.style.setProperty("--text-fade", TEXT_FADE + "ms");
+    document.documentElement.style.setProperty("--lamp-pulse", LAMP_PULSE + "ms");
+    document.documentElement.style.setProperty("--lamp", LAMP_COLOR);
+    document.documentElement.style.setProperty("--lamp-deep", "#ffaa33");
+    void MOON_COLOR; void MOON_GLOW;
+
+    let starBoost = 1;
+    let pathGuide = []; // points along alley for firefly wander
+
+    function mulberry32(a) {
+      return function () {
+        a |= 0; a = a + 0x6D2B79F5 | 0;
+        let t = Math.imul(a ^ a >>> 15, 1 | a);
+        t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+        return ((t ^ t >>> 14) >>> 0) / 4294967296;
+      };
+    }
+
+    function resizeCanvases() {
+      const dpr = Math.min(devicePixelRatio || 1, 2);
+      const w = innerWidth, h = innerHeight;
+      for (const c of [world, canvas]) {
+        c.width = Math.floor(w * dpr);
+        c.height = Math.floor(h * dpr);
+        c.style.width = w + "px";
+        c.style.height = h + "px";
+        c.getContext("2d").setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
+      paintWorld();
+      resizeFireflies();
+    }
+
+    function drawStars(w, h, rng) {
+      const n = Math.floor(70 + w * 0.035);
+      for (let i = 0; i < n; i++) {
+        const x = rng() * w;
+        const y = rng() * h * 0.58;
+        const r = rng() < 0.1 ? 1.3 + rng() : 0.45 + rng() * 0.75;
+        const a = (0.2 + rng() * 0.55) * starBoost;
+        wctx.beginPath();
+        wctx.fillStyle = `rgba(220,235,255,${Math.min(1, a)})`;
+        wctx.arc(x, y, r, 0, Math.PI * 2);
+        wctx.fill();
+        if (r > 1.1 && starBoost > 1) {
+          wctx.beginPath();
+          wctx.fillStyle = `rgba(200,220,255,${a * 0.3})`;
+          wctx.arc(x, y, r * 2.8, 0, Math.PI * 2);
+          wctx.fill();
+        }
+      }
+    }
+
+    /* Soft tree / house masses — calm silhouettes, not wireframe */
+    function drawSoftTree(ox, oy, w, h, lean) {
+      wctx.fillStyle = "#070a12";
+      // trunk
+      wctx.fillRect(ox - w * 0.04, oy - h * 0.35, w * 0.08, h * 0.35);
+      // canopy mass
+      wctx.beginPath();
+      wctx.ellipse(ox + lean, oy - h * 0.45, w * 0.42, h * 0.38, 0, 0, Math.PI * 2);
+      wctx.ellipse(ox - w * 0.2 + lean, oy - h * 0.35, w * 0.28, h * 0.28, 0, 0, Math.PI * 2);
+      wctx.ellipse(ox + w * 0.22 + lean, oy - h * 0.38, w * 0.3, h * 0.3, 0, 0, Math.PI * 2);
+      wctx.fill();
+    }
+
+    function drawHouse(ox, oy, w, h) {
+      wctx.fillStyle = "#070a12";
+      wctx.fillRect(ox - w / 2, oy - h * 0.55, w, h * 0.55);
+      wctx.beginPath();
+      wctx.moveTo(ox - w * 0.58, oy - h * 0.55);
+      wctx.lineTo(ox, oy - h);
+      wctx.lineTo(ox + w * 0.58, oy - h * 0.55);
+      wctx.closePath();
+      wctx.fill();
+      // faint warm window
+      wctx.fillStyle = "rgba(255, 180, 80, 0.08)";
+      wctx.fillRect(ox - w * 0.15, oy - h * 0.35, w * 0.12, h * 0.14);
+    }
+
+    function drawSideLamp(x, groundY, scale, dim) {
+      const poleH = 70 * scale;
+      wctx.fillStyle = "#0a0c14";
+      wctx.fillRect(x - 1.5 * scale, groundY - poleH, 3 * scale, poleH);
+      // dim glass
+      const glow = wctx.createRadialGradient(x, groundY - poleH + 4 * scale, 0, x, groundY - poleH, 28 * scale);
+      glow.addColorStop(0, `rgba(255, 190, 100, ${0.22 * dim})`);
+      glow.addColorStop(1, "rgba(255, 160, 60, 0)");
+      wctx.fillStyle = glow;
+      wctx.beginPath();
+      wctx.arc(x, groundY - poleH + 4 * scale, 28 * scale, 0, Math.PI * 2);
+      wctx.fill();
+      wctx.fillStyle = `rgba(255, 200, 120, ${0.35 * dim})`;
+      wctx.beginPath();
+      wctx.roundRect
+        ? wctx.roundRect(x - 5 * scale, groundY - poleH - 2 * scale, 10 * scale, 12 * scale, 2 * scale)
+        : wctx.rect(x - 5 * scale, groundY - poleH - 2 * scale, 10 * scale, 12 * scale);
+      wctx.fill();
+      // pool
+      const pool = wctx.createRadialGradient(x, groundY, 0, x, groundY, 22 * scale);
+      pool.addColorStop(0, `rgba(255, 180, 80, ${0.12 * dim})`);
+      pool.addColorStop(1, "rgba(0,0,0,0)");
+      wctx.fillStyle = pool;
+      wctx.beginPath();
+      wctx.ellipse(x, groundY, 20 * scale, 5 * scale, 0, 0, Math.PI * 2);
+      wctx.fill();
+    }
+
+    function paintWorld() {
+      const w = innerWidth, h = innerHeight;
+      wctx.clearRect(0, 0, w, h);
+      const rng = mulberry32(42);
+      drawStars(w, h, rng);
+
+      const horizon = h * 0.52;
+      const groundNear = h * 0.94;
+      const cx = w * 0.5;
+
+      // CSS lamp = path destination («дом»)
+      const lampEl = document.querySelector(".lamp");
+      const lampRect = lampEl ? lampEl.getBoundingClientRect() : null;
+      const lampBaseY = lampRect ? lampRect.bottom : h * 0.7;
+      const pathTop = lampBaseY;
+      const pathBottom = groundNear;
+      const pathTopW = lampRect ? Math.max(lampRect.width * 1.5, w * 0.035) : w * 0.05;
+      const pathBotW = w * 0.44;
+
+      // far ground
+      wctx.fillStyle = "#0c101c";
+      wctx.beginPath();
+      wctx.moveTo(0, horizon);
+      wctx.lineTo(w, horizon);
+      wctx.lineTo(w, h);
+      wctx.lineTo(0, h);
+      wctx.closePath();
+      wctx.fill();
+
+      // side silhouettes — calm masses
+      drawHouse(w * 0.08, horizon + h * 0.08, w * 0.09, h * 0.14);
+      drawSoftTree(w * 0.16, horizon + h * 0.12, w * 0.12, h * 0.22, -4);
+      drawSoftTree(w * 0.84, horizon + h * 0.1, w * 0.14, h * 0.26, 3);
+      drawHouse(w * 0.92, horizon + h * 0.07, w * 0.08, h * 0.12);
+      drawSoftTree(w * 0.28, horizon + h * 0.18, w * 0.1, h * 0.18, 0);
+      drawSoftTree(w * 0.72, horizon + h * 0.16, w * 0.11, h * 0.2, -2);
+
+      // mid ground banks
+      wctx.fillStyle = "#080b14";
+      wctx.beginPath();
+      wctx.moveTo(0, horizon + h * 0.12);
+      wctx.bezierCurveTo(w * 0.2, horizon + h * 0.08, w * 0.35, horizon + h * 0.16, cx - pathTopW * 2.2, pathTop);
+      wctx.lineTo(0, h);
+      wctx.closePath();
+      wctx.fill();
+      wctx.beginPath();
+      wctx.moveTo(w, horizon + h * 0.12);
+      wctx.bezierCurveTo(w * 0.8, horizon + h * 0.08, w * 0.65, horizon + h * 0.16, cx + pathTopW * 2.2, pathTop);
+      wctx.lineTo(w, h);
+      wctx.closePath();
+      wctx.fill();
+
+      // path leading TO the lamp (apex = lamp base — no lighter shape above the lamp)
+      wctx.fillStyle = "#141822";
+      wctx.beginPath();
+      wctx.moveTo(cx - pathBotW / 2, pathBottom);
+      wctx.lineTo(cx + pathBotW / 2, pathBottom);
+      wctx.lineTo(cx + pathTopW / 2, pathTop);
+      wctx.lineTo(cx - pathTopW / 2, pathTop);
+      wctx.closePath();
+      wctx.fill();
+
+      // warm light only when lamp is lit
+      const lampIsLit = lampEl && lampEl.classList.contains("lit");
+      if (lampRect && lampIsLit) {
+        const glass = document.querySelector(".lamp-glass");
+        const g = glass ? glass.getBoundingClientRect() : lampRect;
+        const apexX = g.left + g.width / 2;
+        const apexY = g.top + g.height * 0.65;
+        wctx.save();
+        wctx.beginPath();
+        wctx.rect(0, apexY, w, h - apexY);
+        wctx.clip();
+        const cone = wctx.createRadialGradient(
+          apexX, apexY, 0,
+          apexX, apexY + (pathBottom - apexY) * 0.6,
+          Math.max(w * 0.18, pathBotW * 0.5)
+        );
+        cone.addColorStop(0, "rgba(255, 190, 100, 0.16)");
+        cone.addColorStop(0.4, "rgba(255, 170, 70, 0.06)");
+        cone.addColorStop(1, "rgba(0,0,0,0)");
+        wctx.fillStyle = cone;
+        wctx.fillRect(0, apexY, w, h - apexY);
+        wctx.restore();
+
+        const washY = lampBaseY - 2;
+        const wash = wctx.createRadialGradient(cx, washY, 0, cx, washY, w * 0.18);
+        wash.addColorStop(0, "rgba(255, 180, 80, 0.16)");
+        wash.addColorStop(1, "rgba(0,0,0,0)");
+        wctx.fillStyle = wash;
+        wctx.beginPath();
+        wctx.ellipse(cx, washY, w * 0.14, h * 0.028, 0, 0, Math.PI * 2);
+        wctx.fill();
+      }
+      // side lamps along path in front of the main lamp
+      const sideLamps = [
+        { t: 0.2, side: -1, dim: 0.4, s: 0.5 },
+        { t: 0.2, side: 1, dim: 0.4, s: 0.5 },
+        { t: 0.48, side: -1, dim: 0.55, s: 0.7 },
+        { t: 0.48, side: 1, dim: 0.55, s: 0.7 },
+        { t: 0.78, side: -1, dim: 0.35, s: 0.9 },
+        { t: 0.78, side: 1, dim: 0.35, s: 0.9 },
+      ];
+      pathGuide = [];
+      for (let t = 0; t <= 1; t += 0.08) {
+        const y = pathTop + (pathBottom - pathTop) * t;
+        const half = (pathTopW + (pathBotW - pathTopW) * t) / 2;
+        pathGuide.push({ x: cx, y, half });
+      }
+
+      for (const L of sideLamps) {
+        const y = pathTop + (pathBottom - pathTop) * L.t;
+        const half = (pathTopW + (pathBotW - pathTopW) * L.t) / 2;
+        const x = cx + L.side * (half + 16 * L.s);
+        drawSideLamp(x, y + 4, L.s, L.dim);
+      }
+
+      // near curb silhouettes
+      wctx.fillStyle = "#06080e";
+      wctx.beginPath();
+      wctx.moveTo(0, h * 0.86);
+      wctx.lineTo(cx - pathBotW / 2 - 20, pathBottom);
+      wctx.lineTo(0, h);
+      wctx.closePath();
+      wctx.fill();
+      wctx.beginPath();
+      wctx.moveTo(w, h * 0.86);
+      wctx.lineTo(cx + pathBotW / 2 + 20, pathBottom);
+      wctx.lineTo(w, h);
+      wctx.closePath();
+      wctx.fill();
+    }
+
+    /* —— message —— */
+    function placeMessage() {
+      const moonRect = moon.getBoundingClientRect();
+      const sceneRect = scene.getBoundingClientRect();
+      const narrow = innerWidth < 540;
+      const prev = messageEl.style.visibility;
+      const was = messageEl.classList.contains("visible");
+      messageEl.style.visibility = "hidden";
+      messageEl.classList.add("visible");
+      const bw = messageEl.offsetWidth || Math.min(innerWidth * 0.82, 320);
+      const bh = messageEl.offsetHeight || 52;
+      if (!was) messageEl.classList.remove("visible");
+      messageEl.style.visibility = prev;
+      let left, top;
+      if (narrow) {
+        left = (sceneRect.width - bw) / 2;
+        top = moonRect.bottom - sceneRect.top + 14;
+      } else {
+        left = Math.max(16, Math.min(moonRect.left - sceneRect.left - bw * 0.65, sceneRect.width - bw - 16));
+        top = moonRect.bottom - sceneRect.top + 12;
+      }
+      messageEl.style.left = left + "px";
+      messageEl.style.top = Math.min(top, sceneRect.height - bh - 24) + "px";
+    }
+
+    let hideTimer, fadeTimer, lastIndex = -1, msgToken = 0;
+    let revealTimer, igniteTimer, lampOnTimer, lampOffTimer;
+
+    function pickMessage() {
+      if (!messages.length) return "";
+      if (messages.length === 1) return messages[0];
+      let i; do { i = Math.floor(Math.random() * messages.length); } while (i === lastIndex);
+      lastIndex = i;
+      return messages[i];
+    }
+
+    function showMessage(text) {
+      const token = ++msgToken;
+      clearTimeout(hideTimer); clearTimeout(fadeTimer);
+      const isOn = messageEl.classList.contains("visible") && messageEl.textContent;
+      const reveal = () => {
+        if (token !== msgToken) return;
+        messageEl.textContent = text;
+        placeMessage();
+        messageEl.classList.remove("visible");
+        void messageEl.offsetWidth;
+        messageEl.classList.add("visible");
+        hideTimer = setTimeout(() => {
+          if (token !== msgToken) return;
+          messageEl.classList.remove("visible");
+          fadeTimer = setTimeout(() => { if (token === msgToken) messageEl.textContent = ""; }, TEXT_FADE);
+        }, TEXT_DURATION);
+      };
+      if (isOn) { messageEl.classList.remove("visible"); fadeTimer = setTimeout(reveal, TEXT_FADE); }
+      else reveal();
+    }
+
+    function triggerIgniteAndReveal() {
+      clearTimeout(revealTimer);
+      clearTimeout(igniteTimer);
+      clearTimeout(lampOnTimer);
+      clearTimeout(lampOffTimer);
+
+      const lamp = document.querySelector(".lamp");
+      const alreadyLit = lamp.classList.contains("lit");
+
+      // светлячки всегда собираются; сцена «раскрывается»
+      scene.classList.add("revealed", "ignited");
+      starBoost = 1.55;
+      paintWorld();
+      setFireflyMode("swarm");
+
+      if (alreadyLit) {
+        // уже горит — не гасим, только ярче + сброс таймера затухания
+        lamp.classList.add("brighter");
+        paintWorld();
+        lampOffTimer = setTimeout(() => {
+          lamp.classList.remove("lit", "brighter", "spark");
+          paintWorld();
+        }, LAMP_LIT_MS);
+      } else {
+        // тёмный → загорается от роя
+        lampOnTimer = setTimeout(() => {
+          lamp.classList.add("lit", "spark");
+          paintWorld();
+          setTimeout(() => lamp.classList.remove("spark"), 400);
+        }, LAMP_ON_AT);
+
+        lampOffTimer = setTimeout(() => {
+          lamp.classList.remove("lit", "brighter", "spark");
+          paintWorld();
+        }, LAMP_ON_AT + LAMP_LIT_MS);
+      }
+
+      igniteTimer = setTimeout(() => {
+        scene.classList.remove("ignited");
+        lamp.classList.remove("brighter");
+        setFireflyMode("wander");
+      }, IGNITE_MS);
+
+      revealTimer = setTimeout(() => {
+        scene.classList.remove("revealed");
+        starBoost = 1;
+        paintWorld();
+      }, REVEAL_MS);
+    }
+
+    moon.addEventListener("click", () => {
+      moon.classList.remove("pulse");
+      void moon.offsetWidth;
+      moon.classList.add("pulse");
+      showMessage(pickMessage());
+      triggerIgniteAndReveal();
+    });
+    moon.addEventListener("animationend", (e) => {
+      if (e.animationName === "moonPulse") moon.classList.remove("pulse");
+    });
+
+    /* —— fireflies —— */
+    let fireflies = [];
+    let lampAnchor = { x: 0, y: 0 };
+    let flyMode = "wander";
+
+    function setFireflyMode(mode) {
+      flyMode = mode;
+    }
+
+    function resizeFireflies() {
+      const glass = document.querySelector(".lamp-glass");
+      if (glass) {
+        const r = glass.getBoundingClientRect();
+        lampAnchor = { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+      }
+      if (!fireflies.length) createFireflies();
+    }
+
+    function createFireflies() {
+      fireflies = [];
+      for (let i = 0; i < FIREFLY_COUNT; i++) {
+        const alongPath = i < FIREFLY_COUNT * 0.55;
+        let x, y;
+        if (alongPath && pathGuide.length) {
+          const g = pathGuide[Math.floor(Math.random() * pathGuide.length)];
+          x = g.x + (Math.random() - 0.5) * g.half * 1.6;
+          y = g.y - 20 - Math.random() * 80;
+        } else {
+          const a = Math.random() * Math.PI * 2;
+          const r = 40 + Math.random() * 120;
+          x = lampAnchor.x + Math.cos(a) * r;
+          y = lampAnchor.y + Math.sin(a) * r * 0.7;
+        }
+        fireflies.push({
+          x, y,
+          vx: (Math.random() - 0.5) * FIREFLY_SPEED,
+          vy: (Math.random() - 0.5) * FIREFLY_SPEED,
+          phase: Math.random() * Math.PI * 2,
+          twinkle: 0.7 + Math.random() * 1.5,
+          size: 1 + Math.random() * 2,
+          orbit: 0.25 + Math.random() * 0.5,
+          trail: [],
+          homeT: Math.random(),
+        });
+      }
+    }
+
+    function pathPoint(t) {
+      if (!pathGuide.length) return lampAnchor;
+      const idx = Math.min(pathGuide.length - 1, Math.floor(t * (pathGuide.length - 1)));
+      const g = pathGuide[idx];
+      return { x: g.x + (Math.random() - 0.5) * 4, y: g.y - 30, half: g.half };
+    }
+
+    function stepFireflies() {
+      const w = innerWidth, h = innerHeight;
+      const speed = reduceMotion ? FIREFLY_SPEED * 0.12 : FIREFLY_SPEED;
+
+      for (const f of fireflies) {
+        let tx, ty, pull;
+
+        if (flyMode === "swarm") {
+          tx = lampAnchor.x;
+          ty = lampAnchor.y;
+          pull = 0.08;
+        } else {
+          // wander: mix attraction to lamp and drift along path
+          f.homeT += (Math.random() - 0.5) * 0.008;
+          f.homeT = Math.max(0.05, Math.min(0.95, f.homeT));
+          const p = pathPoint(f.homeT);
+          const toLamp = Math.random() > 0.55;
+          if (toLamp) {
+            tx = lampAnchor.x + (Math.random() - 0.5) * 100;
+            ty = lampAnchor.y + (Math.random() - 0.5) * 80;
+            pull = 0.004 * f.orbit;
+          } else {
+            tx = p.x + (Math.random() - 0.5) * (p.half || 40);
+            ty = p.y - Math.random() * 50;
+            pull = 0.006;
+          }
+          // tangential orbit near lamp
+          const dxL = lampAnchor.x - f.x, dyL = lampAnchor.y - f.y;
+          const dL = Math.hypot(dxL, dyL) || 1;
+          if (dL < 160) {
+            f.vx += (-dyL / dL) * 0.012 * f.orbit;
+            f.vy += (dxL / dL) * 0.012 * f.orbit;
+          }
+        }
+
+        const dx = tx - f.x, dy = ty - f.y;
+        const dist = Math.hypot(dx, dy) || 1;
+        f.vx += (dx / dist) * pull;
+        f.vy += (dy / dist) * pull;
+        f.vx += (Math.random() - 0.5) * (flyMode === "swarm" ? 0.02 : 0.035);
+        f.vy += (Math.random() - 0.5) * (flyMode === "swarm" ? 0.02 : 0.035);
+        f.vx *= flyMode === "swarm" ? 0.9 : 0.975;
+        f.vy *= flyMode === "swarm" ? 0.9 : 0.975;
+
+        const mag = Math.hypot(f.vx, f.vy);
+        const max = speed * (flyMode === "swarm" ? 4 : 2.4);
+        if (mag > max) { f.vx = f.vx / mag * max; f.vy = f.vy / mag * max; }
+
+        f.trail.push({ x: f.x, y: f.y });
+        if (f.trail.length > 5) f.trail.shift();
+        f.x += f.vx;
+        f.y += f.vy;
+        f.phase += 0.025 * f.twinkle * (flyMode === "swarm" ? 1.8 : 1);
+
+        f.x = Math.max(0, Math.min(w, f.x));
+        f.y = Math.max(h * 0.2, Math.min(h * 0.9, f.y));
+      }
+    }
+
+    function drawFireflies() {
+      const w = innerWidth, h = innerHeight;
+      ctx.clearRect(0, 0, w, h);
+      const boost = flyMode === "swarm" ? 1.4 : 1;
+
+      for (const f of fireflies) {
+        const alpha = (0.28 + 0.62 * (0.5 + 0.5 * Math.sin(f.phase))) * boost;
+        for (let i = 0; i < f.trail.length; i++) {
+          const t = f.trail[i];
+          ctx.beginPath();
+          ctx.fillStyle = `rgba(220, 255, 160, ${(i / f.trail.length) * alpha * 0.2})`;
+          ctx.arc(t.x, t.y, f.size * 0.5, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        const glow = FIREFLY_GLOW * (flyMode === "swarm" ? 1.25 : 1);
+        const g = ctx.createRadialGradient(f.x, f.y, 0, f.x, f.y, glow);
+        g.addColorStop(0, `rgba(255, 250, 200, ${Math.min(1, alpha)})`);
+        g.addColorStop(0.3, `rgba(255, 238, 153, ${alpha * 0.5})`);
+        g.addColorStop(0.65, `rgba(200, 240, 120, ${alpha * 0.2})`);
+        g.addColorStop(1, "rgba(180, 220, 80, 0)");
+        ctx.beginPath();
+        ctx.fillStyle = g;
+        ctx.arc(f.x, f.y, glow, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.fillStyle = `rgba(255, 252, 220, ${Math.min(1, alpha + 0.2)})`;
+        ctx.arc(f.x, f.y, f.size * boost, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    function loop() {
+      if (!reduceMotion) stepFireflies();
+      else for (const f of fireflies) f.phase += 0.01;
+      drawFireflies();
+      requestAnimationFrame(loop);
+    }
+
+    addEventListener("resize", () => {
+      if (messageEl.textContent) placeMessage();
+      fireflies = [];
+      resizeCanvases();
+    });
+
+    resizeCanvases();
+    loop();
+  </script>
+</body>
+</html>
